@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Murder at the Manor — Vigenère Cipher Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0a0a0f;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
+.G{background:#0a0a0f;width:100%;max-width:700px;min-height:580px;font-family:'Press Start 2P',monospace;color:#e8e8e8;position:relative;overflow:hidden;border:3px solid #ff0055;box-shadow:0 0 0 3px #0a0a0f,0 0 0 6px #ff0055;}
+.page{display:none;padding:28px 24px;min-height:580px;flex-direction:column;align-items:center;justify-content:center;}
+.page.on{display:flex;}
+.neon-g{color:#00ff88;}
+.neon-y{color:#ffd700;}
+.neon-r{color:#ff4466;}
+.neon-p{color:#cc88ff;}
+.neon-c{color:#00ddff;}
+.neon-o{color:#ff8800;}
+.blink{animation:blink 1s step-end infinite;}
+@keyframes blink{50%{opacity:0;}}
+.big-title{font-size:13px;line-height:2.2;text-align:center;letter-spacing:1px;}
+.med{font-size:8px;line-height:2;text-align:center;}
+.sm{font-size:7px;line-height:1.9;text-align:center;color:#aaa;}
+.btn{font-family:'Press Start 2P',monospace;background:#0a0a0f;border:2px solid #ffd700;color:#ffd700;padding:10px 20px;font-size:8px;cursor:pointer;letter-spacing:1px;margin-top:14px;}
+.btn:hover{background:#ffd700;color:#0a0a0f;}
+.btn.red{border-color:#ff4466;color:#ff4466;}
+.btn.red:hover{background:#ff4466;color:#0a0a0f;}
+.btn.grn{border-color:#00ff88;color:#00ff88;}
+.btn.grn:hover{background:#00ff88;color:#0a0a0f;}
+.btn.pur{border-color:#cc88ff;color:#cc88ff;}
+.btn.pur:hover{background:#cc88ff;color:#0a0a0f;}
+.cipher-box{background:#0f0f1a;border:2px solid #ff4466;padding:12px 16px;margin:10px 0;font-size:10px;letter-spacing:4px;color:#ff4466;text-align:center;word-break:break-all;}
+.inp{font-family:'Press Start 2P',monospace;background:#0a0a0f;border:2px solid #00ddff;color:#00ddff;padding:8px 12px;font-size:8px;width:100%;max-width:320px;letter-spacing:2px;outline:none;text-align:center;text-transform:uppercase;margin-top:8px;}
+.inp:focus{border-color:#00ff88;}
+.hint-btn{background:none;border:2px solid #ffd700;color:#ffd700;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;padding:6px 10px;margin-top:8px;}
+.hint-btn:hover{background:#ffd70022;}
+.overlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:#000000f0;z-index:10;flex-direction:column;align-items:center;justify-content:flex-start;padding:12px;overflow-y:auto;}
+.overlay.on{display:flex;}
+.popup{background:#0a0a14;border:3px solid #ffd700;padding:16px;width:100%;max-width:660px;margin-top:4px;}
+.popup-title{font-size:9px;color:#ffd700;margin-bottom:12px;text-align:center;letter-spacing:1px;}
+.section-label{font-size:7px;color:#00ff88;margin:12px 0 6px;letter-spacing:1px;border-left:3px solid #00ff88;padding-left:8px;}
+.step-table{width:100%;border-collapse:collapse;font-size:7px;margin-bottom:6px;}
+.step-table th{background:#111;color:#555;padding:5px 6px;text-align:center;border:1px solid #222;font-size:6px;font-weight:normal;}
+.step-table td{padding:5px 6px;text-align:center;border:1px solid #222;}
+.td-cipher{background:#1a0a0a;color:#ff4466;}
+.td-cnum{background:#1a0a0a;color:#ff8888;}
+.td-key{background:#1a1a00;color:#ffd700;}
+.td-knum{background:#1a1a00;color:#ffe066;}
+.td-diff{background:#0a0a1a;color:#00ddff;}
+.td-note{background:#0f0f0f;color:#555;font-size:6px;}
+.td-final{background:#0a1a0a;color:#00ff88;}
+.td-letter{background:#1a0a1a;color:#cc88ff;font-size:9px;}
+.ref-grid{display:grid;grid-template-columns:repeat(13,1fr);gap:2px;margin-top:4px;}
+.ref-cell{background:#0f0f1a;border:1px solid #222;text-align:center;padding:3px 1px;font-size:6px;}
+.ref-letter{color:#ffd700;}
+.ref-num{color:#555;}
+.err{color:#ff4466;font-size:7px;margin-top:6px;min-height:14px;text-align:center;}
+.prog-bar{display:flex;gap:8px;margin-bottom:18px;}
+.prog-dot{width:14px;height:14px;border:2px solid #444;}
+.prog-dot.done{background:#00ff88;border-color:#00ff88;}
+.prog-dot.active{background:#ffd700;border-color:#ffd700;animation:blink 1s step-end infinite;}
+.scanline{position:absolute;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);pointer-events:none;z-index:1;}
+.content{position:relative;z-index:2;width:100%;display:flex;flex-direction:column;align-items:center;}
+.divider{width:100%;border:none;border-top:1px solid #2a2a2a;margin:12px 0;}
+.tbl-wrap{width:100%;overflow-x:auto;}
+.killer-note{background:#0f0f1a;border:2px solid #cc88ff;padding:14px;max-width:420px;margin:10px 0;font-size:7px;line-height:2.2;color:#cc88ff;text-align:center;}
+.summary-box{background:#0f1a0f;border:2px solid #00ff88;padding:14px;max-width:420px;width:100%;margin:8px 0;}
+.taunt-box{background:#0f0f1a;border:2px solid #cc88ff;padding:10px;max-width:420px;width:100%;font-size:7px;color:#cc88ff;text-align:center;line-height:2.2;margin-bottom:8px;}
+.neg-note{color:#ff4466;font-size:6px;}
+</style>
+</head>
+<body>
+<div class="G" id="root">
+<div class="scanline"></div>
+
+<!-- PAGE 1: INTRO -->
+<div class="page on" id="p1">
+<div class="content">
+  <div style="font-size:11px;color:#ff4466;letter-spacing:2px;margin-bottom:8px;">&#9760; CLASSIFIED &#9760;</div>
+  <div class="big-title neon-y">MURDER<br>AT THE<br>MANOR</div>
+  <div style="font-size:7px;color:#cc88ff;letter-spacing:1px;margin:6px 0 16px;">a cipher detective game</div>
+  <hr class="divider">
+  <div class="med neon-r" style="margin:10px 0 8px;">*** URGENT CASE FILE ***</div>
+  <div class="sm" style="max-width:420px;margin-bottom:8px;">
+    Victor Hargreaves — billionaire — found dead.<br>
+    The killer left a taunting note at the scene.
+  </div>
+  <div class="killer-note">
+    "haha detective. think you can catch me?<br>
+    i left you everything you need.<br>
+    the murder location, the weapon, my name.<br>
+    all encrypted with my favourite key:<br><br>
+    <span class="neon-y" style="font-size:11px;letter-spacing:4px;">L - O - L</span><br><br>
+    good luck cracking it. you'll need it. &#128520;"
+    <div style="color:#555;font-size:7px;margin-top:8px;">— the killer</div>
+  </div>
+  <button class="btn" onclick="goPage('p2')">&#9658; ACCEPT CASE</button>
+</div>
+</div>
+
+<!-- PAGE 2: CIPHER EXPLANATION -->
+<div class="page" id="p2">
+<div class="content">
+  <div class="neon-y" style="font-size:9px;margin-bottom:4px;">&#128218; CIPHER BRIEFING</div>
+  <div class="sm" style="margin-bottom:12px;">learn how the killer's cipher works before you decode</div>
+  <div style="background:#0f0f1a;border:2px solid #ffd700;padding:16px;max-width:540px;width:100%;">
+    <div style="font-size:7px;color:#ffd700;margin-bottom:8px;">&#9670; WHAT IS THE VIGENÈRE CIPHER?</div>
+    <div class="sm" style="text-align:left;color:#ccc;margin-bottom:12px;line-height:2;">
+      Each letter in the message is shifted by the value of the matching key letter. The key <span class="neon-y">LOL</span> repeats across the whole message — L then O then L then back to L, and so on.
+    </div>
+    <div style="font-size:7px;color:#00ff88;margin-bottom:8px;">&#9670; KEY LETTER VALUES &nbsp;(A=0, B=1 ... Z=25)</div>
+    <div style="display:flex;gap:24px;justify-content:center;margin-bottom:14px;">
+      <div style="text-align:center;font-size:7px;"><span class="neon-y" style="font-size:14px;">L</span><br><span style="color:#aaa;">= 11</span></div>
+      <div style="text-align:center;font-size:7px;"><span class="neon-y" style="font-size:14px;">O</span><br><span style="color:#aaa;">= 14</span></div>
+      <div style="text-align:center;font-size:7px;"><span class="neon-y" style="font-size:14px;">L</span><br><span style="color:#aaa;">= 11</span></div>
+    </div>
+    <div style="font-size:7px;color:#00ddff;margin-bottom:8px;">&#9670; EXAMPLE: encrypt "CAT" with key "LOL"</div>
+    <div class="tbl-wrap">
+    <table style="width:100%;border-collapse:collapse;font-size:7px;margin-bottom:10px;">
+      <tr style="color:#555;"><td style="padding:4px 8px;">letter</td><td style="padding:4px;text-align:center;border:1px solid #222;">C(2)</td><td style="padding:4px;text-align:center;border:1px solid #222;">A(0)</td><td style="padding:4px;text-align:center;border:1px solid #222;">T(19)</td></tr>
+      <tr><td style="padding:4px 8px;color:#ffd700;">key (LOL)</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#ffd700;">L(11)</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#ffd700;">O(14)</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#ffd700;">L(11)</td></tr>
+      <tr><td style="padding:4px 8px;color:#aaa;">encrypt (+)</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#aaa;">2+11=13</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#aaa;">0+14=14</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#aaa;">19+11=30 → 4</td></tr>
+      <tr><td style="padding:4px 8px;color:#ff4466;">ciphertext</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#ff4466;">N</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#ff4466;">O</td><td style="padding:4px;text-align:center;border:1px solid #222;color:#ff4466;">E</td></tr>
+    </table>
+    </div>
+    <div style="font-size:7px;color:#aaa;line-height:2.2;background:#0a0a0a;padding:8px;border-left:3px solid #cc88ff;">
+      to <span class="neon-g">decrypt</span>: subtract the key value instead.<br>
+      if the result is negative, add 26 to wrap around.<br>
+      spaces &amp; punctuation are left <span class="neon-y">unchanged</span>.
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap;justify-content:center;">
+    <button class="btn red" onclick="goPage('p1')">&#9664; BACK</button>
+    <button class="btn grn" onclick="startGame()">START CASE &#9658;</button>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 3: LOCATION -->
+<div class="page" id="p3">
+<div class="content">
+  <div class="prog-bar" id="prog3"></div>
+  <div class="neon-r" style="font-size:9px;margin-bottom:6px;">&#128205; PUZZLE 1 OF 3: LOCATION</div>
+  <div class="sm" style="margin-bottom:4px;">where was the body found?</div>
+  <div class="sm" style="color:#555;margin-bottom:8px;">decrypt with key: <span class="neon-y">LOL</span></div>
+  <div class="cipher-box" id="loc-cipher">...</div>
+  <div class="sm" style="color:#aaa;margin-bottom:4px;">type the decrypted location:</div>
+  <input class="inp" id="loc-inp" placeholder="TYPE HERE" oninput="clearErr('loc-err')" onkeydown="if(event.key==='Enter')checkLoc()"/>
+  <div class="err" id="loc-err"></div>
+  <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+    <button class="hint-btn" onclick="showHint('loc')">&#128161;  💡 HINT </button>
+    <button class="btn grn" onclick="checkLoc()">SUBMIT &#9658;</button>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 4: WEAPON -->
+<div class="page" id="p4">
+<div class="content">
+  <div class="prog-bar" id="prog4"></div>
+  <div class="neon-o" style="font-size:9px;margin-bottom:6px;">&#9876; PUZZLE 2 OF 3: WEAPON</div>
+  <div class="sm" style="margin-bottom:4px;">what was used to commit the murder?</div>
+  <div class="sm" style="color:#555;margin-bottom:8px;">decrypt with key: <span class="neon-y">LOL</span></div>
+  <div class="cipher-box" id="wpn-cipher">...</div>
+  <div class="sm" style="color:#aaa;margin-bottom:4px;">type the decrypted weapon:</div>
+  <input class="inp" id="wpn-inp" placeholder="TYPE HERE" oninput="clearErr('wpn-err')" onkeydown="if(event.key==='Enter')checkWpn()"/>
+  <div class="err" id="wpn-err"></div>
+  <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+    <button class="hint-btn" onclick="showHint('wpn')">&#128161; HOW TO DECRYPT</button>
+    <button class="btn grn" onclick="checkWpn()">SUBMIT &#9658;</button>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 5: KILLER -->
+<div class="page" id="p5">
+<div class="content">
+  <div class="prog-bar" id="prog5"></div>
+  <div class="neon-p" style="font-size:9px;margin-bottom:6px;">&#128373; PUZZLE 3 OF 3: THE KILLER</div>
+  <div class="sm" style="margin-bottom:4px;">who did it? name the suspect.</div>
+  <div class="sm" style="color:#555;margin-bottom:8px;">decrypt with key: <span class="neon-y">LOL</span></div>
+  <div class="cipher-box" id="kil-cipher">...</div>
+  <div class="sm" style="color:#aaa;margin-bottom:4px;">type the killer's name:</div>
+  <input class="inp" id="kil-inp" placeholder="TYPE HERE" oninput="clearErr('kil-err')" onkeydown="if(event.key==='Enter')checkKil()"/>
+  <div class="err" id="kil-err"></div>
+  <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+    <button class="hint-btn" onclick="showHint('kil')">&#128161; HOW TO DECRYPT</button>
+    <button class="btn grn" onclick="checkKil()">SUBMIT &#9658;</button>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 6: WIN -->
+<div class="page" id="p6">
+<div class="content">
+  <div style="font-size:11px;color:#ffd700;margin-bottom:8px;">&#11088; CASE CLOSED &#11088;</div>
+  <div class="big-title neon-g" style="font-size:10px;margin-bottom:12px;">YOU GOT<br>THE KILLER!</div>
+  <div class="summary-box">
+    <div style="font-size:7px;color:#00ff88;margin-bottom:12px;text-align:center;">&#9670; CASE SUMMARY &#9670;</div>
+    <div style="font-size:7px;line-height:2.5;color:#ccc;">
+      <div>&#128205; location &nbsp;: <span class="neon-c" id="s-loc">—</span></div>
+      <div>&#9876; weapon &nbsp;&nbsp;&nbsp;: <span class="neon-o" id="s-wpn">—</span></div>
+      <div>&#128373; killer &nbsp;&nbsp;&nbsp;: <span class="neon-r" id="s-kil">—</span></div>
+    </div>
+  </div>
+  <div class="taunt-box">
+    "okay fine. you got me. <span class="neon-y">LOL</span>.<br>
+    didn't think you'd actually crack it.<br>
+    see you in court i guess..."
+    <div style="color:#555;font-size:7px;margin-top:6px;">— the (caught) killer</div>
+  </div>
+  <button class="btn pur" onclick="replay()">&#9654; PLAY AGAIN</button>
+</div>
+</div>
+
+<!-- HINT OVERLAY -->
+<div class="overlay" id="hint-overlay">
+<div class="popup">
+  <div class="popup-title" id="hint-title">&#128161; HOW TO USE THE VIGENÈRE CIPHER</div>
+
+  <!-- SAMPLE WORKED EXAMPLE -->
+  <div class="section-label">&#9670; STEP 1 — WORKED EXAMPLE WITH [ACCNV] AND KEY LOL</div>
+  <div style="font-size:6px;color:#555;margin-bottom:6px;">follow these steps to decode any ciphertext:</div>
+  <div class="tbl-wrap">
+  <table class="step-table" id="sample-table">
+    <thead>
+      <tr>
+        <th>cipher<br>letter</th>
+        <th>cipher<br>number</th>
+        <th>key<br>letter</th>
+        <th>key<br>number</th>
+        <th>difference<br>(cipher - key)</th>
+        <th>add 26?</th>
+        <th>final<br>number</th>
+        <th>plain<br>letter</th>
+      </tr>
+    </thead>
+    <tbody id="sample-body"></tbody>
+  </table>
+  </div>
+
+  <!-- YOUR CIPHER TO SOLVE -->
+  <div class="section-label" id="puzzle-label">&#9670; STEP 2 — NOW TRY YOUR PUZZLE CIPHER YOURSELF</div>
+  <div style="font-size:6px;color:#555;margin-bottom:6px;">apply the same steps to this cipher — fill in each column:</div>
+  <div class="tbl-wrap">
+  <table class="step-table" id="puzzle-table">
+    <thead>
+      <tr>
+        <th>cipher<br>letter</th>
+        <th>cipher<br>number</th>
+        <th>key<br>letter</th>
+        <th>key<br>number</th>
+        <th>difference<br>(cipher - key)</th>
+        <th>add 26?</th>
+        <th>final<br>number</th>
+        <th>plain<br>letter</th>
+      </tr>
+    </thead>
+    <tbody id="puzzle-body"></tbody>
+  </table>
+  </div>
+  <div style="font-size:6px;color:#555;margin:6px 0 10px;text-align:center;">&#9650; work out each column, then use the reference table below to find the letters &#9650;</div>
+
+  <!-- A-Z REFERENCE TABLE -->
+  <div class="section-label">&#9670; A–Z REFERENCE TABLE</div>
+  <div class="ref-grid" id="ref-grid"></div>
+
+  <button class="btn red" style="margin-top:14px;width:100%;font-size:7px;" onclick="closeHint()">&#10005; CLOSE &amp; GO SOLVE IT!</button>
+</div>
+</div>
+
+</div>
+
+<script>
+const LOCATIONS=['Hall','Den','Study','Attic','Cellar','Porch','Patio','Shed','Loft','Garage','Pantry','Closet','Bath','Dining','Kitchen','Garden','Stairs','Lounge'];
+const WEAPONS=['Knife','Rope','Hammer','Poker','Bat','Axe','Chain','Cane','Brick','Skewer','Wrench','Lamp','Towel','Shovel','Razor','Needle','Bottle','Cord','Club','Machete'];
+const NAMES=['Alice','Ben','Clara','Dean','Emma','Felix','Grace','Hugo','Iris','Jake','Kara','Liam','Maya','Nina','Owen','Paige','Quinn','Ryan','Sofia','Tyler'];
+const KEY='LOL';
+let gLoc='',gWpn='',gKil='',cLoc='',cWpn='',cKil='';
+
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+function vig(text,key,enc){
+  key=key.toUpperCase().replace(/[^A-Z]/g,'');
+  let r='',ki=0;
+  for(let ch of text.toUpperCase()){
+    if(ch>='A'&&ch<='Z'){
+      const p=ch.charCodeAt(0)-65,k=key.charCodeAt(ki%key.length)-65;
+      r+=String.fromCharCode((enc?(p+k)%26:(p-k+26)%26)+65);
+      ki++;
+    }else r+=ch;
+  }
+  return r;
+}
+
+function startGame(){
+  gLoc=pick(LOCATIONS);gWpn=pick(WEAPONS);gKil=pick(NAMES);
+  cLoc=vig(gLoc,KEY,true);cWpn=vig(gWpn,KEY,true);cKil=vig(gKil,KEY,true);
+  document.getElementById('loc-cipher').textContent=cLoc;
+  document.getElementById('wpn-cipher').textContent=cWpn;
+  document.getElementById('kil-cipher').textContent=cKil;
+  ['loc-inp','wpn-inp','kil-inp'].forEach(id=>document.getElementById(id).value='');
+  ['loc-err','wpn-err','kil-err'].forEach(id=>clearErr(id));
+  goPage('p3');
+}
+
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  if(id==='p3')makeProg(0);
+  if(id==='p4')makeProg(1);
+  if(id==='p5')makeProg(2);
+}
+
+function makeProg(step){
+  ['prog3','prog4','prog5'].forEach((pid,i)=>{
+    const el=document.getElementById(pid);
+    if(!el)return;
+    el.innerHTML='';
+    for(let j=0;j<3;j++){
+      const d=document.createElement('div');
+      d.className='prog-dot'+(j<step?' done':j===step?' active':'');
+      el.appendChild(d);
+    }
+  });
+}
+
+function clearErr(id){const e=document.getElementById(id);if(e)e.textContent='';}
+
+function checkLoc(){
+  const v=(document.getElementById('loc-inp').value||'').trim().toUpperCase();
+  if(v===gLoc.toUpperCase()) goPage('p4');
+  else document.getElementById('loc-err').textContent='wrong location! try again, detective.';
+}
+function checkWpn(){
+  const v=(document.getElementById('wpn-inp').value||'').trim().toUpperCase();
+  if(v===gWpn.toUpperCase()) goPage('p5');
+  else document.getElementById('wpn-err').textContent='wrong weapon! think harder.';
+}
+function checkKil(){
+  const v=(document.getElementById('kil-inp').value||'').trim().toUpperCase();
+  if(v===gKil.toUpperCase()){
+    document.getElementById('s-loc').textContent=gLoc.toUpperCase();
+    document.getElementById('s-wpn').textContent=gWpn.toUpperCase();
+    document.getElementById('s-kil').textContent=gKil.toUpperCase();
+    goPage('p6');
+  }else{
+    document.getElementById('kil-err').textContent='wrong name! the killer slips away...';
+  }
+}
+
+function replay(){
+  goPage('p1');
+}
+
+// Build A-Z reference grid
+function buildRefGrid(){
+  const g=document.getElementById('ref-grid');
+  g.innerHTML='';
+  for(let i=0;i<26;i++){
+    const cell=document.createElement('div');
+    cell.className='ref-cell';
+    cell.innerHTML='<div class="ref-letter">'+String.fromCharCode(65+i)+'</div><div class="ref-num">'+i+'</div>';
+    g.appendChild(cell);
+  }
+}
+
+// Build sample table for ACCNV with key LOL
+function buildSampleTable(){
+  const sample='ACCNV';
+  const keyLetters=['L','O','L'];
+  const keyVals=[11,14,11];
+  const tbody=document.getElementById('sample-body');
+  tbody.innerHTML='';
+  let ki=0;
+  for(let i=0;i<sample.length;i++){
+    const c=sample[i];
+    const cv=c.charCodeAt(0)-65;
+    const kl=keyLetters[ki%3];
+    const kv=keyVals[ki%3];
+    const diff=cv-kv;
+    const needAdd=diff<0;
+    const final=needAdd?diff+26:diff;
+    const pl=String.fromCharCode(final+65);
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td class="td-cipher">'+c+'</td>'+
+      '<td class="td-cnum">'+cv+'</td>'+
+      '<td class="td-key">'+kl+'</td>'+
+      '<td class="td-knum">'+kv+'</td>'+
+      '<td class="td-diff">'+(diff<0?'<span class="neg-note">'+diff+'</span>':diff)+'</td>'+
+      '<td class="td-note">'+(needAdd?'<span style="color:#ff4466;">yes +26</span>':'no')+'</td>'+
+      '<td class="td-final">'+final+'</td>'+
+      '<td class="td-letter">'+pl+'</td>';
+    tbody.appendChild(tr);
+    ki++;
+  }
+}
+
+// Build puzzle table — show cipher letter and key, blank out the rest with ?
+function buildPuzzleTable(cipher){
+  const keyLetters=['L','O','L'];
+  const keyVals=[11,14,11];
+  const tbody=document.getElementById('puzzle-body');
+  tbody.innerHTML='';
+  let ki=0;
+  for(let i=0;i<cipher.length;i++){
+    const c=cipher[i];
+    if(c>='A'&&c<='Z'){
+      const cv=c.charCodeAt(0)-65;
+      const kl=keyLetters[ki%3];
+      const kv=keyVals[ki%3];
+      const tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td class="td-cipher">'+c+'</td>'+
+        '<td class="td-cnum">'+cv+'</td>'+
+        '<td class="td-key">'+kl+'</td>'+
+        '<td class="td-knum">'+kv+'</td>'+
+        '<td class="td-diff" style="color:#333;">?</td>'+
+        '<td class="td-note" style="color:#333;">?</td>'+
+        '<td class="td-final" style="color:#333;">?</td>'+
+        '<td class="td-letter" style="color:#333;">?</td>';
+      tbody.appendChild(tr);
+      ki++;
+    }else{
+      const tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td class="td-cipher">'+c+'</td>'+
+        '<td colspan="6" style="color:#333;font-size:6px;text-align:center;border:1px solid #222;">space — keep as is</td>'+
+        '<td class="td-letter" style="color:#444;">'+c+'</td>';
+      tbody.appendChild(tr);
+    }
+  }
+}
+
+function showHint(which){
+  let cipher='',title='',plabel='';
+  if(which==='loc'){
+    cipher=cLoc;
+    title='&#128205; HOW TO DECRYPT — LOCATION PUZZLE';
+    plabel='&#9670; STEP 2 — NOW APPLY THIS TO YOUR LOCATION CIPHER: ['+cLoc+']';
+  }else if(which==='wpn'){
+    cipher=cWpn;
+    title='&#9876; HOW TO DECRYPT — WEAPON PUZZLE';
+    plabel='&#9670; STEP 2 — NOW APPLY THIS TO YOUR WEAPON CIPHER: ['+cWpn+']';
+  }else{
+    cipher=cKil;
+    title='&#128373; HOW TO DECRYPT — KILLER NAME PUZZLE';
+    plabel='&#9670; STEP 2 — NOW APPLY THIS TO YOUR KILLER CIPHER: ['+cKil+']';
+  }
+  document.getElementById('hint-title').innerHTML=title;
+  document.getElementById('puzzle-label').innerHTML=plabel;
+  buildSampleTable();
+  buildPuzzleTable(cipher);
+  buildRefGrid();
+  document.getElementById('hint-overlay').classList.add('on');
+  document.getElementById('hint-overlay').scrollTop=0;
+}
+
+function closeHint(){document.getElementById('hint-overlay').classList.remove('on');}
+
+// init ref grid on load
+buildRefGrid();
+</script>
+</body>
+</html>
